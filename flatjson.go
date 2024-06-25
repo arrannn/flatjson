@@ -1,12 +1,14 @@
 package flatjson
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
-func Unflatten(flatMap map[string]interface{}, delimiter string) (interface{}, error) {
+// UnflattenMap takes a flat map and a delimiter, and returns a nested map or array.
+func UnflattenMap(flatMap map[string]interface{}, delimiter string) (interface{}, error) {
 	var (
 		object = make(map[string]interface{}, 0)
 		array  = make([]interface{}, 0)
@@ -37,12 +39,12 @@ func Unflatten(flatMap map[string]interface{}, delimiter string) (interface{}, e
 	// Unflatten any nested objects
 	for key, value := range nested {
 		if _, err := strconv.Atoi(key); err == nil {
-			if unflattenedInner, err := Unflatten(value, delimiter); err == nil {
+			if unflattenedInner, err := UnflattenMap(value, delimiter); err == nil {
 				array = append(array, unflattenedInner)
 			}
 			continue
 		}
-		unflattenedInner, err := Unflatten(value, delimiter)
+		unflattenedInner, err := UnflattenMap(value, delimiter)
 		if err != nil {
 			return nil, fmt.Errorf("couldnt unflatten inner: %s", err)
 		}
@@ -53,4 +55,13 @@ func Unflatten(flatMap map[string]interface{}, delimiter string) (interface{}, e
 		return array, nil
 	}
 	return object, nil
+}
+
+// UnflattenBytes is a shortcut to unflatten a json object as bytes
+func UnflattenBytes(b []byte, delimiter string) (interface{}, error) {
+	var m = make(map[string]interface{}, 0)
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, fmt.Errorf("couldnt unmarshal bytes to map: %s", err)
+	}
+	return UnflattenMap(m, delimiter)
 }
